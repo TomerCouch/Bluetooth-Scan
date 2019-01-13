@@ -27,10 +27,10 @@ namespace BluetoothScan.Droid
         private static MainActivity _instance; // App activity
         private BluetoothReceiver _receiver; // Handles Bluetooth Adapter activities
         public static BluetoothAdapter bluetoothAdapter => BluetoothAdapter.DefaultAdapter;
-        private BLEScanCallback bleAdapterCallback; // Functions that handle a response from the bluetooth LE adapter i.e. BLE adapter callbacks
+        private static BluetoothLeScanner _bluetoothLeScanner;
+        private static BLEScanCallback _bleAdapterCallback; // Functions that handle a response from the bluetooth LE adapter i.e. BLE adapter callbacks
 
         public static ObservableCollection<BTDeviceInfo> devices; // updating collection of devices
-        public static string adapterStatus = "Ready";
 
         // It exposes Update functions. 
         // TODO: other approaches may allow better encapsulation
@@ -59,16 +59,11 @@ namespace BluetoothScan.Droid
         private void Init()
         {
             _instance = this;
-
+          
             BluetoothAccessValidator.RequestAccessIfNeeded(this);
-
-            _receiver = new BluetoothReceiver();
-            bleAdapterCallback = new BLEScanCallback();
-            devices = getBondedDevices();
-
-            SubscribeToBluetooth();
-
-            startScanning();
+            
+            _bluetoothLeScanner = bluetoothAdapter.BluetoothLeScanner;
+            _bleAdapterCallback = new BLEScanCallback();
         }
 
         // It stops Bluetooth scanning and broadcast listeners
@@ -109,29 +104,29 @@ namespace BluetoothScan.Droid
         // It scans for both classic and BLE devices
         private void startScanning()
         {
-            bluetoothAdapter.StartDiscovery();
+            devices = getBondedDevices();
 
-            bluetoothAdapter.BluetoothLeScanner
-            .StartScan(bleAdapterCallback);
+            bluetoothAdapter.StartDiscovery();
+            _bluetoothLeScanner.StartScan(_bleAdapterCallback);
         }
 
         // It stop both scans for both classic and BLE devices
         private void cancelScanning()
         {
-
             bluetoothAdapter.CancelDiscovery();
 
-            bluetoothAdapter.BluetoothLeScanner.
-                StopScan(bleAdapterCallback);
+           _bluetoothLeScanner.StopScan(_bleAdapterCallback);
         }
 
         // It registers bluetooth receiver - for scanning and discovery of classic bluetooth devices
         private void SubscribeToBluetooth()
         {
-                if (_receiver == null) return;
-
+            if (_receiver == null)
+            {
+                _receiver = new BluetoothReceiver();
+            }
+            
                 RegisterReceiver(_receiver, new IntentFilter(BluetoothDevice.ActionFound));
-
         }
         
         // It unregisters listeners and resets the classic bluetooth receiver
@@ -143,6 +138,7 @@ namespace BluetoothScan.Droid
             {
                 UnregisterReceiver(_receiver);
             }
+
             _receiver = null;
             devices = null;
         }
@@ -150,15 +146,16 @@ namespace BluetoothScan.Droid
         // It adds distinctively devices
         public void UpdateAdapter(BTDeviceInfo dataItem)
         {
-            if (devices != null && dataItem != null && !devices.Any(device=> dataItem.DeviceName!= null && dataItem.DeviceName.Equals(device.DeviceName)))
+            if (devices != null && dataItem != null && !devices.Any(device=> dataItem.MacAddress!= null && dataItem.MacAddress.Equals(device.MacAddress)))
             {
                 devices.Add(dataItem);
             }
         }
         
         // It exposes device list for DI.Allows the use for Cross-Platforms
-        public ObservableCollection<BTDeviceInfo> GetDevices()
+        public ObservableCollection<BTDeviceInfo> ScanDevices()
         {
+            startScanning();
             return devices;
         }
 
@@ -178,6 +175,11 @@ namespace BluetoothScan.Droid
                 addDevice(result);
             }
 
+            public override void OnScanFailed([GeneratedEnum] ScanFailure errorCode)
+            {
+                base.OnScanFailed(errorCode);
+                Console.WriteLine(errorCode.ToString());
+            }
             public void addDevice(ScanResult result)
             {
                 if(result == null || result.Device == null)
@@ -189,7 +191,6 @@ namespace BluetoothScan.Droid
                       new BTDeviceInfo(result.Device.Name, result.Device.Address));
             }
         }
-
     }
 
     public class AndroidInitializer : IPlatformInitializer

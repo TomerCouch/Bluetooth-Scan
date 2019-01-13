@@ -51,7 +51,7 @@ namespace BluetoothScan.ViewModels
         // It grabs the blutooth devices data from Android project using DI. 
         public void ScanStart()
         {
-             BluetoothDevices = DependencyService.Get<IBluetoothDeviceManager>().GetDevices();
+             BluetoothDevices = DependencyService.Get<IBluetoothDeviceManager>().ScanDevices();
         }
 
         public override async void OnNavigatingTo(INavigationParameters parameters)

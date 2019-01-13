@@ -9,6 +9,6 @@ namespace BluetoothScan.Models
     public interface IBluetoothDeviceManager
     {
         // It returns all found devices -> Paired bluetooth devices or unpaired, Classic or LTE
-        ObservableCollection<BTDeviceInfo> GetDevices();
+        ObservableCollection<BTDeviceInfo> ScanDevices();
     }
 }

@@ -12,7 +12,7 @@ namespace BluetoothScan.Droid
     public class BluetoothReceiver : BroadcastReceiver
     {
         public static BluetoothAdapter BluetoothAdapter => BluetoothAdapter.DefaultAdapter;
-
+        
         public BluetoothReceiver()
         {
             // Bluetooth is not supported on this device
